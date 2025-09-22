@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:12345';
+// Use relative URL for API calls to work with any domain
+const API_BASE_URL = '';
 
 // Create an axios instance with default config
 const api = axios.create({
