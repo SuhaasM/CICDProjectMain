@@ -22,6 +22,7 @@ jobs:
     - name: Build and Test Backend
       run: |
         cd backend
+        chmod +x mvnw
         ./mvnw clean package
         
     - name: Set up Node.js
