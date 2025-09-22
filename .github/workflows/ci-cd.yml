@@ -84,6 +84,7 @@ jobs:
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/cicdproject-frontend:latest
           
           # Deploy with docker-compose
+          export DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
           docker-compose down
           docker-compose up -d
         EOF

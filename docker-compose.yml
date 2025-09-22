@@ -18,7 +18,7 @@ services:
       - app-network
 
   backend:
-    build: ./backend
+    image: ${DOCKER_HUB_USERNAME}/cicdproject-backend:latest
     container_name: backend
     restart: always
     depends_on:
@@ -33,7 +33,7 @@ services:
       - app-network
 
   frontend:
-    build: ./frontend
+    image: ${DOCKER_HUB_USERNAME}/cicdproject-frontend:latest
     container_name: frontend
     restart: always
     depends_on:
