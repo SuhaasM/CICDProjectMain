@@ -72,10 +72,10 @@ jobs:
         chmod 600 private_key.pem
         
         # Copy docker-compose file to EC2
-        scp -o StrictHostKeyChecking=no -i private_key.pem docker-compose.yml ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
+        scp -o StrictHostKeyChecking=no -i private_key.pem -P 2222 docker-compose.yml ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
         
         # SSH into EC2 and deploy
-        ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no -i private_key.pem -p 2222 ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
           # Login to Docker Hub
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
           
