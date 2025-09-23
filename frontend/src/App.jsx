@@ -13,7 +13,7 @@ function App() {
       
       {user ? (
         <div>
-          <Text size="xl">You are logged in as {user.username}.</Text>
+          <Text size="xl">You are logged in as {user?.username || 'User'}.</Text>
           <Text c="dimmed">Explore your dashboard using the navigation bar above.</Text>
         </div>
       ) : (

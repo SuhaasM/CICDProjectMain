@@ -27,7 +27,7 @@ function Navbar() {
                         
                         <Button component={Link} to="/profile" variant="subtle">My Profile</Button> {/* <-- ADD THIS LINE */}
                         
-                        <Button onClick={handleLogout} variant="light">Logout ({user.username})</Button>
+                        <Button onClick={handleLogout} variant="light">Logout ({user?.username || 'User'})</Button>
                     </>
                 ) : (
                     <>

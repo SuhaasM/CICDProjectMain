@@ -82,7 +82,7 @@ function FacultyDashboard() {
                     {pending.map(p => (
                         <List.Item key={p.id} icon={<ThemeIcon color="gray" size={24} radius="xl"><IconCircleDashed size={16} /></ThemeIcon>}>
                            <Group justify="space-between">
-                                <Text>{p.student.profile.username} ({p.student.email}) requested to enroll in "{p.course.title}"</Text>
+                                <Text>{p.student?.profile?.username || 'Unknown'} ({p.student?.email || 'No email'}) requested to enroll in "{p.course?.title || 'Unknown course'}"</Text>
                                 <Button size="xs" onClick={() => handleApprove(p.id)}>Approve</Button>
                            </Group>
                         </List.Item>

@@ -62,7 +62,7 @@ function Dashboard() {
     return (
         <Container my="lg">
             <Title order={2}>Student Dashboard</Title>
-            <Text>Welcome, {user?.username}!</Text>
+            <Text>Welcome, {user?.username || 'User'}!</Text>
             
             <section style={{ marginTop: '2rem' }}>
                 <Title order={3} mb="md">My Enrolled Courses</Title>
