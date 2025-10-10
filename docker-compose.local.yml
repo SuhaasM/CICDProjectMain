@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-local
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cicdproject
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data-local:/var/lib/mysql
+    networks:
+      - app-network-local
+
+  backend:
+    build: ./backend
+    container_name: backend-local
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-local:3306/cicdproject?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_MVC_ASYNC_REQUEST_TIMEOUT: 300000
+      SERVER_TOMCAT_CONNECTION_TIMEOUT: 300000
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 300000
+    ports:
+      - "12345:12345"
+    networks:
+      - app-network-local
+
+  frontend:
+    build: ./frontend
+    container_name: frontend-local
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - app-network-local
+
+networks:
+  app-network-local:
+    driver: bridge
+
+volumes:
+  mysql-data-local:

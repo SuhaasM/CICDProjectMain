@@ -114,11 +114,11 @@ function CourseDetailPage() {
             await api.post('/api/ai/save-quiz', { 
                 quiz: editingQuiz, 
                 lessonId: lessons.find(l => l.id === editingQuiz.lessonId)?.id,
-                visible: quizVisibility
+                visible: true // Always make quiz visible to students
             });
             setQuiz(editingQuiz);
             setEditModalOpen(false);
-            toast.success("Quiz saved successfully!");
+            toast.success("Quiz saved successfully! Students can now access this quiz.");
         } catch (error) {
             toast.error("Failed to save quiz.");
         }
@@ -146,6 +146,30 @@ function CourseDetailPage() {
     const handleSubmitAnswer = (questionIndex) => {
         if (submittedQuestions.includes(questionIndex)) return;
         setSubmittedQuestions([...submittedQuestions, questionIndex]);
+        
+        // Calculate and show score after submission
+        const correctAnswers = submittedQuestions.filter(qIndex => 
+            studentAnswers[qIndex] === quiz.questions[qIndex].correctAnswerIndex
+        ).length;
+        
+        // If all questions are answered, show a toast with the final score
+        if (submittedQuestions.length + 1 === quiz.questions.length) {
+            const finalScore = correctAnswers + (studentAnswers[questionIndex] === quiz.questions[questionIndex].correctAnswerIndex ? 1 : 0);
+            toast.success(`Quiz completed! Your final score: ${finalScore}/${quiz.questions.length}`);
+        }
+    };
+    
+    const handleSubmitAllAnswers = () => {
+        // Submit all remaining questions
+        const allQuestions = Array.from({length: quiz.questions.length}, (_, i) => i);
+        setSubmittedQuestions(allQuestions);
+        
+        // Calculate final score
+        const correctAnswers = allQuestions.filter(qIndex => 
+            studentAnswers[qIndex] === quiz.questions[qIndex].correctAnswerIndex
+        ).length;
+        
+        toast.success(`Quiz completed! Your final score: ${correctAnswers}/${quiz.questions.length}`);
     };
 
     if (loading) return <Container my="lg"><Loader /></Container>;
@@ -175,7 +199,13 @@ function CourseDetailPage() {
                             )}
                             {lesson.contentType === 'text' && <Text>{lesson.contentText}</Text>}
                             {isInstructor && lesson.contentType === 'text' && (
-                                <Button onClick={() => handleGenerateQuiz(lesson)} size="xs" mt="md">
+                                <Button 
+                                    onClick={() => handleGenerateQuiz(lesson)} 
+                                    size="xs" 
+                                    mt="md"
+                                    color="blue"
+                                    leftIcon={<span>✨</span>}
+                                >
                                     Generate Quiz with AI
                                 </Button>
                             )}
@@ -188,55 +218,82 @@ function CourseDetailPage() {
                 <Paper withBorder shadow="md" p="md" mt="xl">
                     <Title order={4}>{quiz.title}</Title>
                     {quiz.questions && Array.isArray(quiz.questions) ? (
-                        quiz.questions.map((q, index) => (
-                            <div key={index} style={{ marginTop: '1rem' }}>
-                                <Text fw={500}>{index + 1}. {q.questionText}</Text>
-                                
-                                {isInstructor ? (
-                                    // Faculty view - always shows correct answers
-                                    <List listStyleType="none" ml="md">
-                                        {q.options.map((opt, i) => (
-                                            <List.Item key={i} c={i === q.correctAnswerIndex ? 'green' : 'dimmed'}>
-                                                {opt}
-                                            </List.Item>
-                                        ))}
-                                    </List>
-                                ) : (
-                                    // Student view - only shows options first, then correct answer after submission
-                                    <>
-                                        <Radio.Group 
-                                            value={studentAnswers[index]?.toString()} 
-                                            onChange={(value) => handleAnswerSelect(index, parseInt(value))}
-                                            name={`question-${index}`}
-                                            disabled={submittedQuestions.includes(index)}
-                                        >
-                                            <Stack mt="xs">
-                                                {q.options.map((opt, i) => (
-                                                    <Radio key={i} value={i.toString()} label={opt} />
-                                                ))}
-                                            </Stack>
-                                        </Radio.Group>
-                                        
-                                        {!submittedQuestions.includes(index) ? (
-                                            <Button 
-                                                onClick={() => handleSubmitAnswer(index)} 
-                                                disabled={studentAnswers[index] === undefined}
-                                                size="xs" 
-                                                mt="sm"
+                        <>
+                            {quiz.questions.map((q, index) => (
+                                <div key={index} style={{ marginTop: '1rem' }}>
+                                    <Text fw={500}>{index + 1}. {q.questionText}</Text>
+                                    
+                                    {isInstructor ? (
+                                        // Faculty view - always shows correct answers
+                                        <List listStyleType="none" ml="md">
+                                            {q.options.map((opt, i) => (
+                                                <List.Item key={i} c={i === q.correctAnswerIndex ? 'green' : 'dimmed'}>
+                                                    {opt} {i === q.correctAnswerIndex && '(Correct Answer)'}
+                                                </List.Item>
+                                            ))}
+                                        </List>
+                                    ) : (
+                                        // Student view - only shows options first, then correct answer after submission
+                                        <>
+                                            <Radio.Group 
+                                                value={studentAnswers[index]?.toString()} 
+                                                onChange={(value) => handleAnswerSelect(index, parseInt(value))}
+                                                name={`question-${index}`}
+                                                disabled={submittedQuestions.includes(index)}
                                             >
-                                                Submit Answer
-                                            </Button>
-                                        ) : (
-                                            <Text mt="sm" c={studentAnswers[index] === q.correctAnswerIndex ? 'green' : 'red'}>
-                                                {studentAnswers[index] === q.correctAnswerIndex 
-                                                    ? 'Correct!' 
-                                                    : `Incorrect. The correct answer is: ${q.options[q.correctAnswerIndex]}`}
+                                                <Stack mt="xs">
+                                                    {q.options.map((opt, i) => (
+                                                        <Radio key={i} value={i.toString()} label={opt} />
+                                                    ))}
+                                                </Stack>
+                                            </Radio.Group>
+                                            
+                                            {!submittedQuestions.includes(index) ? (
+                                                <Button 
+                                                    onClick={() => handleSubmitAnswer(index)} 
+                                                    disabled={studentAnswers[index] === undefined}
+                                                    size="xs" 
+                                                    mt="sm"
+                                                >
+                                                    Submit Answer
+                                                </Button>
+                                            ) : (
+                                                <Text mt="sm" c={studentAnswers[index] === q.correctAnswerIndex ? 'green' : 'red'}>
+                                                    {studentAnswers[index] === q.correctAnswerIndex 
+                                                        ? 'Correct!' 
+                                                        : `Incorrect. The correct answer is: ${q.options[q.correctAnswerIndex]}`}
+                                                </Text>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                            
+                            {!isInstructor && (
+                                <Paper withBorder p="md" mt="xl" bg="blue.0">
+                                    <Group position="apart" align="center">
+                                        <div>
+                                            <Text fw={700}>Your Score: {submittedQuestions.filter(qIndex => 
+                                                studentAnswers[qIndex] === quiz.questions[qIndex].correctAnswerIndex
+                                            ).length} / {submittedQuestions.length}</Text>
+                                            <Text size="sm" c="dimmed">
+                                                {submittedQuestions.length === quiz.questions.length 
+                                                    ? 'Quiz completed!' 
+                                                    : `${quiz.questions.length - submittedQuestions.length} questions remaining`}
                                             </Text>
+                                        </div>
+                                        {submittedQuestions.length < quiz.questions.length && (
+                                            <Button 
+                                                onClick={handleSubmitAllAnswers}
+                                                color="blue"
+                                            >
+                                                Submit All Answers
+                                            </Button>
                                         )}
-                                    </>
-                                )}
-                            </div>
-                        ))
+                                    </Group>
+                                </Paper>
+                            )}
+                        </>
                     ) : <Text c="dimmed">Quiz questions not available.</Text>}
                 </Paper>
             )}

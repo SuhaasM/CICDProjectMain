@@ -1,11 +1,25 @@
 import axios from 'axios';
 
-// Use relative URL for API calls to work with any domain
-const API_BASE_URL = '';
+// Determine the API base URL based on the environment
+const getApiBaseUrl = () => {
+    const hostname = window.location.hostname;
+    // If running on AWS EC2 (public IP) or localhost
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        return ''; // Empty for relative URLs when deployed
+    } else {
+        return 'http://localhost:12345'; // Use localhost URL for local development
+    }
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create an axios instance with default config
 const api = axios.create({
     baseURL: API_BASE_URL,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
 
 // Add a request interceptor to automatically add auth token
