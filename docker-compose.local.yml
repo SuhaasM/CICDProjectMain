@@ -11,7 +11,7 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data-local:/var/lib/mysql
     networks:
@@ -42,7 +42,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "8090:80"
     networks:
       - app-network-local
 
