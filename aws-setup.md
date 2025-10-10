@@ -4,7 +4,7 @@
 1. AWS Account
 2. EC2 instance (t2.medium or higher recommended)
 3. Docker and Docker Compose installed on EC2
-4. Security Group with ports 80, 12345, and 3306 open
+4. Security Group with ports 22 (SSH), 80 (HTTP), 8080 (Backend API), and 3306 (MySQL) open
 
 ## EC2 Setup Instructions
 
