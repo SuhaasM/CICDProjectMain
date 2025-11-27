@@ -10,6 +10,17 @@
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
   tasks:
+    - name: Ensure Python3 is installed
+      raw: |
+        (command -v python3 >/dev/null 2>&1) || (sudo dnf install -y python3 || sudo yum install -y python3 || (sudo apt-get update && sudo apt-get install -y python3))
+
+    - name: Ensure curl is installed
+      raw: |
+        (command -v curl >/dev/null 2>&1) || (sudo dnf install -y curl || sudo yum install -y curl || (sudo apt-get update && sudo apt-get install -y curl))
+
+    - name: Set Python interpreter
+      set_fact:
+        ansible_python_interpreter: /usr/bin/python3
     - name: Install prerequisites (curl)
       package:
         name: curl
