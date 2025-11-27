@@ -86,7 +86,15 @@
       command: kubectl -n lms set image deployment/frontend frontend={{ dockerhub_username }}/cicdproject-frontend:{{ image_tag }}
 
     - name: Wait for backend rollout
-      command: kubectl -n lms rollout status deployment/backend --timeout=180s
+      shell: kubectl -n lms get deploy backend -o jsonpath='{.status.availableReplicas}'
+      register: backend_ready
+      retries: 36
+      delay: 5
+      until: (backend_ready.stdout | default('0') | int) >= 1
 
     - name: Wait for frontend rollout
-      command: kubectl -n lms rollout status deployment/frontend --timeout=180s
+      shell: kubectl -n lms get deploy frontend -o jsonpath='{.status.availableReplicas}'
+      register: frontend_ready
+      retries: 36
+      delay: 5
+      until: (frontend_ready.stdout | default('0') | int) >= 1
