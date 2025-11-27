@@ -23,9 +23,27 @@
         ansible_python_interpreter: /usr/bin/python3
 
     - name: Install k3s (lightweight Kubernetes)
-      shell: curl -sfL https://get.k3s.io | sh -
+      shell: |
+        set -e
+        echo "Starting k3s installation..."
+        curl -sfL https://get.k3s.io | sh -
+        echo "k3s installation complete"
       args:
         creates: /etc/rancher/k3s/k3s.yaml
+      register: k3s_install
+      timeout: 300
+
+    - name: Wait 30s for SSH to stabilize after k3s install
+      pause:
+        seconds: 30
+
+    - name: Verify k3s is running
+      shell: kubectl get nodes
+      register: k3s_check
+      retries: 10
+      delay: 5
+      until: k3s_check.rc == 0
+      timeout: 60
 
     - name: Create directory for Kubernetes manifests
       file:
@@ -39,6 +57,7 @@
         dest: /opt/lms-k8s/
         mode: '0644'
         remote_src: false
+      timeout: 60
 
     - name: Wait for Kubernetes API to be ready
       shell: kubectl get nodes --no-headers
@@ -97,7 +116,6 @@
       command: kubectl -n lms set image deployment/frontend frontend={{ dockerhub_username }}/cicdproject-frontend:{{ image_tag }}
       timeout: 30
 
-    # CRITICAL FIX: Use shell with proper timeout and retry logic for long-running operations
     - name: Wait for backend rollout with retry
       shell: |
         set -e
@@ -122,7 +140,6 @@
       retries: 2
       delay: 5
 
-    # CRITICAL FIX: Use shell with proper timeout and retry logic for long-running operations
     - name: Wait for frontend rollout with retry
       shell: |
         set -e

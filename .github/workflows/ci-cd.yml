@@ -55,6 +55,7 @@ jobs:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
     - uses: actions/checkout@v3
@@ -71,11 +72,28 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
         chmod 600 private_key.pem
         
+        # Add retry wrapper for SSH operations
+        retry_ssh() {
+          local retries=3
+          local count=0
+          while [ $count -lt $retries ]; do
+            if "$@"; then
+              return 0
+            fi
+            count=$((count + 1))
+            if [ $count -lt $retries ]; then
+              echo "Retry $count/$retries in 5s..."
+              sleep 5
+            fi
+          done
+          return 1
+        }
+        
         # Copy docker-compose file to EC2
-        scp -o StrictHostKeyChecking=no -i private_key.pem -P 22 docker-compose.yml ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
+        retry_ssh scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem -P 22 docker-compose.yml ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
         
         # SSH into EC2 and deploy
-        ssh -o StrictHostKeyChecking=no -i private_key.pem -p 22 ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+        retry_ssh ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem -p 22 ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
           # Install Docker if not installed (for Amazon Linux 2023)
           if ! command -v docker &> /dev/null; then
             echo "Installing Docker..."
@@ -115,6 +133,7 @@ jobs:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v3
       - name: Configure AWS credentials
@@ -131,21 +150,20 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
-      - name: Add EC2 host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy to remote k3s with Ansible
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          ANSIBLE_SSH_TIMEOUT: "60"
-          ANSIBLE_COMMAND_TIMEOUT: "300"  # 5 minutes for long commands
           ANSIBLE_HOST_KEY_CHECKING: "false"
-        
+          ANSIBLE_SSH_TIMEOUT: "120"
+          ANSIBLE_COMMAND_TIMEOUT: "600"
+          ANSIBLE_PIPELINING: "true"
+          ANSIBLE_SSH_RETRIES: "5"
         run: |
           ansible-playbook -i "${{ secrets.EC2_HOST }}," -u ${{ secrets.EC2_USERNAME }} --private-key private_key.pem \
             -e dockerhub_username=${DOCKER_HUB_USERNAME} -e image_tag=latest \
-            --ssh-common-args="-o ConnectTimeout=60 -o StrictHostKeyChecking=no" \
+            --ssh-common-args="-o ConnectTimeout=120 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=auto -o ControlPersist=60s" \
+            -vv \
             ansible/deploy_k8s.yml
       - name: Cleanup
+        if: always()
         run: rm -f private_key.pem
