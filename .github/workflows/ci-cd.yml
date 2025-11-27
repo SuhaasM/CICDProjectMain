@@ -131,11 +131,18 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
+      - name: Add EC2 host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy to remote k3s with Ansible
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          ANSIBLE_HOST_KEY_CHECKING: "false"
         run: |
           ansible-playbook -i "${{ secrets.EC2_HOST }}," -u ${{ secrets.EC2_USERNAME }} --private-key private_key.pem \
-            -e dockerhub_username=${DOCKER_HUB_USERNAME} -e image_tag=latest ansible/deploy_k8s.yml
+            -e dockerhub_username=${DOCKER_HUB_USERNAME} -e image_tag=latest \
+            -e "ansible_ssh_common_args=-o StrictHostKeyChecking=no" \
+            ansible/deploy_k8s.yml
       - name: Cleanup
         run: rm -f private_key.pem
