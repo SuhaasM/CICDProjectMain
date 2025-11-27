@@ -21,10 +21,7 @@
     - name: Set Python interpreter
       set_fact:
         ansible_python_interpreter: /usr/bin/python3
-    - name: Install prerequisites (curl)
-      package:
-        name: curl
-        state: present
+    # curl already ensured above via raw task; avoid rpm conflicts on Amazon Linux
 
     - name: Install k3s (lightweight Kubernetes)
       shell: curl -sfL https://get.k3s.io | sh -
