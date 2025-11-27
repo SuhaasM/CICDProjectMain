@@ -142,7 +142,6 @@ jobs:
         run: |
           ansible-playbook -i "${{ secrets.EC2_HOST }}," -u ${{ secrets.EC2_USERNAME }} --private-key private_key.pem \
             -e dockerhub_username=${DOCKER_HUB_USERNAME} -e image_tag=latest \
-            -e "ansible_ssh_common_args=-o StrictHostKeyChecking=no" \
             ansible/deploy_k8s.yml
       - name: Cleanup
         run: rm -f private_key.pem
