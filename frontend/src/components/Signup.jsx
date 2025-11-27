@@ -21,7 +21,8 @@ function Signup() {
             setSuccess('Registration successful! Redirecting to login...');
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
-            setError(err.response?.data || 'Registration failed. Please try again.');
+            const msg = (err.response?.data?.error) || (err.response?.data?.message) || err.message || 'Registration failed. Please try again.';
+            setError(msg);
         }
     };
 

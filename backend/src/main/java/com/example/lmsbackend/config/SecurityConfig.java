@@ -50,7 +50,7 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
 
                 // ADMIN ONLY - Highest priority routes
-                .requestMatchers("/api/admin/**").permitAll() // Temporarily allow admin access for testing
+                .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
                 // FACULTY & ADMIN
                 .requestMatchers(HttpMethod.POST, "/api/courses").hasAnyAuthority("FACULTY", "ADMIN", "ROLE_ADMIN")
@@ -89,12 +89,14 @@ public class SecurityConfig {
             "http://localhost:80", 
             "http://localhost:3000",
             "http://localhost:5173",
-            "http://localhost:5174", 
+            "http://localhost:5174",
+            "http://localhost:8090",
             "http://127.0.0.1",
             "http://127.0.0.1:80",
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174"
+            "http://127.0.0.1:5174",
+            "http://127.0.0.1:8090"
             // AWS EC2 instance will work with relative URLs, so no need to add it here
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

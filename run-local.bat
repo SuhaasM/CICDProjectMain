@@ -8,7 +8,7 @@ echo Building and starting containers...
 docker-compose -f docker-compose.local.yml up -d --build
 
 echo Application started!
-echo Frontend: http://localhost
+echo Frontend: http://localhost:8090
 echo Backend API: http://localhost:12345/api
 echo.
 echo Press any key to stop the application...

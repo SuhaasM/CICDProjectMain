@@ -1,0 +1,71 @@
+---
+- name: Deploy LMS stack to Kubernetes (remote k3s)
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    dockerhub_username: "your_dockerhub_username"
+    image_tag: "latest"
+    kubeconfig_path: "/etc/rancher/k3s/k3s.yaml"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  tasks:
+    - name: Install prerequisites (curl)
+      package:
+        name: curl
+        state: present
+
+    - name: Install k3s (lightweight Kubernetes)
+      shell: curl -sfL https://get.k3s.io | sh -
+      args:
+        creates: /etc/rancher/k3s/k3s.yaml
+
+    - name: Wait for Kubernetes API to be ready
+      shell: kubectl get nodes --no-headers
+      register: kubectl_nodes
+      retries: 20
+      delay: 6
+      until: kubectl_nodes.rc == 0 and kubectl_nodes.stdout_lines | length > 0
+
+    - name: Ensure Kubernetes namespace exists
+      command: kubectl apply -f k8s/namespace.yaml
+
+    - name: Apply database secret
+      command: kubectl apply -f k8s/secret.yaml
+
+    - name: Deploy MySQL
+      command: kubectl apply -f k8s/mysql-deployment.yaml
+
+    - name: Expose MySQL service
+      command: kubectl apply -f k8s/mysql-service.yaml
+
+    - name: Deploy backend
+      command: kubectl apply -f k8s/backend-deployment.yaml
+
+    - name: Expose backend service
+      command: kubectl apply -f k8s/backend-service.yaml
+
+    - name: Deploy frontend
+      command: kubectl apply -f k8s/frontend-deployment.yaml
+
+    - name: Expose frontend service
+      command: kubectl apply -f k8s/frontend-service.yaml
+
+    - name: Apply ingress
+      command: kubectl apply -f k8s/ingress.yaml
+
+    - name: Remove nginx ingress class annotation for k3s (Traefik default)
+      command: kubectl -n lms annotate ingress lms-ingress kubernetes.io/ingress.class-
+      ignore_errors: true
+
+    - name: Update backend image to Docker Hub username
+      command: kubectl -n lms set image deployment/backend backend={{ dockerhub_username }}/cicdproject-backend:{{ image_tag }}
+
+    - name: Update frontend image to Docker Hub username
+      command: kubectl -n lms set image deployment/frontend frontend={{ dockerhub_username }}/cicdproject-frontend:{{ image_tag }}
+
+    - name: Wait for backend rollout
+      command: kubectl -n lms rollout status deployment/backend --timeout=180s
+
+    - name: Wait for frontend rollout
+      command: kubectl -n lms rollout status deployment/frontend --timeout=180s

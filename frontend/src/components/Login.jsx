@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { Container, Title, Paper, TextInput, PasswordInput, Button, Text, Alert } from '@mantine/core';
 
 function Login() {
@@ -32,7 +32,8 @@ function Login() {
                     break;
             }
         } catch (err) {
-            setError(err.response?.data || 'Login failed. Please check your credentials.');
+            const msg = (err.response?.data?.error) || (err.response?.data?.message) || err.message || 'Login failed. Please check your credentials.';
+            setError(msg);
         }
     };
 

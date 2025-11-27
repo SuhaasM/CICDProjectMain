@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../utils/api';
 import { Link } from 'react-router-dom';
 import { Container, Title, Paper, TextInput, Textarea, Button, Group, List, ThemeIcon, Text } from '@mantine/core';
@@ -37,7 +37,7 @@ function FacultyDashboard() {
             toast.success("Enrollment Approved!");
             fetchData();
         } catch (err) {
-            toast.error("Failed to approve.");
+            toast.error(err?.response?.data?.error || "Failed to approve.");
         }
     };
 

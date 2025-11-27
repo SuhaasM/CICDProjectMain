@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { Container, Title, Text, Paper, Button, Accordion, Textarea, Select, Group, Loader, List, TextInput, Modal, Radio, Stack, Switch } from '@mantine/core';
@@ -51,7 +51,7 @@ function CourseDetailPage() {
                 fetchQuizForLesson(currentLesson.id);
             }
         } catch (error) {
-            toast.error("Failed to fetch course data.");
+            toast.error(error?.response?.data?.error || "Failed to fetch course data.");
         } finally {
             setLoading(false);
         }
@@ -89,7 +89,7 @@ function CourseDetailPage() {
             setShowAddLessonForm(false);
             fetchCourseAndLessons();
         } catch (error) {
-            toast.error("Failed to add lesson.");
+            toast.error(error?.response?.data?.error || "Failed to add lesson.");
         }
     };
 
@@ -105,7 +105,7 @@ function CourseDetailPage() {
             setEditModalOpen(true);
             toast.success("Quiz generated successfully! You can now edit the questions.");
         } catch (error) {
-            toast.error("Failed to generate quiz.");
+            toast.error(error?.response?.data?.error || "Failed to generate quiz.");
         }
     };
     
@@ -120,7 +120,8 @@ function CourseDetailPage() {
             setEditModalOpen(false);
             toast.success("Quiz saved successfully! Students can now access this quiz.");
         } catch (error) {
-            toast.error("Failed to save quiz.");
+            toast.error(error?.response?.data?.error || "Failed to save quiz.");
+            console.error(error);
         }
     };
     

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../utils/api';
 import { Container, Title, Paper, TextInput, Button, Text as MantineText, Avatar, FileInput, Group } from '@mantine/core';
 import { toast } from 'react-toastify';
@@ -58,7 +58,7 @@ function ProfilePage() {
             toast.success("Avatar updated!");
             fetchProfile(); // Refresh profile to show new avatar
         } catch (error) {
-            toast.error("Avatar upload failed.");
+            toast.error(error?.response?.data?.error || "Avatar upload failed.");
         }
     };
 

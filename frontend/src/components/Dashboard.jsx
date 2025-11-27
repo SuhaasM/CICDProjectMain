@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../utils/api';
 import { Link } from 'react-router-dom';
 import { Container, Title, Text, SimpleGrid, Card, Button, Badge } from '@mantine/core';

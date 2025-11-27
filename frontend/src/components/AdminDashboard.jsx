@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import api from '../utils/api';
 import { Container, Title, Table, Select, Button, Paper, TextInput, PasswordInput, Group } from '@mantine/core';
 import { toast } from 'react-toastify';
@@ -28,7 +28,7 @@ function AdminDashboard() {
             setUsers(usersResponse.data);
             setEnrollments(enrollmentsResponse.data);
         } catch (err) {
-            setError('Failed to fetch data. You may not have permission.');
+            setError(err?.response?.data?.error || 'Failed to fetch data. You may not have permission.');
         } finally {
             setLoading(false);
         }
@@ -59,7 +59,7 @@ function AdminDashboard() {
             toast.success(`User role updated to ${newRole}`);
             fetchData();
         } catch (err) {
-            toast.error('Failed to update role.');
+            toast.error(err?.response?.data?.error || 'Failed to update role.');
         }
     };
 
@@ -70,7 +70,7 @@ function AdminDashboard() {
                 toast.success('Enrollment removed successfully!');
                 fetchData();
             } catch (err) {
-                toast.error('Failed to remove enrollment.');
+                toast.error(err?.response?.data?.error || 'Failed to remove enrollment.');
             }
         }
     };

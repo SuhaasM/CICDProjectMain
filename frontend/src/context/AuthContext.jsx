@@ -1,8 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import api from '../utils/api';
-
-const AuthContext = createContext();
+import { AuthContext } from './context.js';
 
 export const AuthProvider = ({ children }) => {
     // Initialize state from localStorage to stay logged in
@@ -41,8 +39,4 @@ export const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = () => {
-    return useContext(AuthContext);
 };

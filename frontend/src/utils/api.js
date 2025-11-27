@@ -2,13 +2,7 @@ import axios from 'axios';
 
 // Determine the API base URL based on the environment
 const getApiBaseUrl = () => {
-    const hostname = window.location.hostname;
-    // If running on AWS EC2 (public IP) or localhost
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        return ''; // Empty for relative URLs when deployed
-    } else {
-        return 'http://localhost:12345'; // Use localhost URL for local development
-    }
+    return '';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -16,7 +10,7 @@ const API_BASE_URL = getApiBaseUrl();
 // Create an axios instance with default config
 const api = axios.create({
     baseURL: API_BASE_URL,
-    withCredentials: true,
+    withCredentials: false,
     headers: {
         'Content-Type': 'application/json'
     }
@@ -79,13 +73,14 @@ api.interceptors.response.use(
         
         if (error.response) {
             // Handle specific error codes
-            switch (error.response.status) {
+            const status = error.response.status;
+            const url = originalRequest?.url || '';
+            const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/signup');
+            switch (status) {
                 case 401:
-                    // Unauthorized - token expired or invalid
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    // Redirect to login page
-                    window.location.href = '/login';
+                    if (!isAuthEndpoint) {
+                        // Let components decide what to do; no forced redirect here
+                    }
                     break;
                 case 403:
                     // Forbidden - user doesn't have permission
