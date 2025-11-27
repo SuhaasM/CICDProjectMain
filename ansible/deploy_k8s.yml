@@ -36,9 +36,10 @@
 
     - name: Copy Kubernetes manifests to remote
       copy:
-        src: k8s/
+        src: "{{ playbook_dir }}/../k8s/"
         dest: /opt/lms-k8s/
         mode: '0644'
+        remote_src: false
 
     - name: Wait for Kubernetes API to be ready
       shell: kubectl get nodes --no-headers
