@@ -138,11 +138,14 @@ jobs:
       - name: Deploy to remote k3s with Ansible
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          ANSIBLE_SSH_TIMEOUT: "60"
+          ANSIBLE_COMMAND_TIMEOUT: "300"  # 5 minutes for long commands
           ANSIBLE_HOST_KEY_CHECKING: "false"
-          ANSIBLE_SSH_ARGS: "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ControlMaster=auto -o ControlPersist=60s"
+        
         run: |
           ansible-playbook -i "${{ secrets.EC2_HOST }}," -u ${{ secrets.EC2_USERNAME }} --private-key private_key.pem \
             -e dockerhub_username=${DOCKER_HUB_USERNAME} -e image_tag=latest \
+            --ssh-common-args="-o ConnectTimeout=60 -o StrictHostKeyChecking=no" \
             ansible/deploy_k8s.yml
       - name: Cleanup
         run: rm -f private_key.pem

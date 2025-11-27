@@ -21,7 +21,6 @@
     - name: Set Python interpreter
       set_fact:
         ansible_python_interpreter: /usr/bin/python3
-    # curl already ensured above via raw task; avoid rpm conflicts on Amazon Linux
 
     - name: Install k3s (lightweight Kubernetes)
       shell: curl -sfL https://get.k3s.io | sh -
@@ -47,54 +46,111 @@
       retries: 20
       delay: 6
       until: kubectl_nodes.rc == 0 and kubectl_nodes.stdout_lines | length > 0
+      timeout: 150
 
     - name: Ensure Kubernetes namespace exists
       command: kubectl apply -f /opt/lms-k8s/namespace.yaml
+      timeout: 30
 
     - name: Apply database secret
       command: kubectl apply -f /opt/lms-k8s/secret.yaml
+      timeout: 30
 
     - name: Deploy MySQL
       command: kubectl apply -f /opt/lms-k8s/mysql-deployment.yaml
+      timeout: 30
 
     - name: Expose MySQL service
       command: kubectl apply -f /opt/lms-k8s/mysql-service.yaml
+      timeout: 30
 
     - name: Deploy backend
       command: kubectl apply -f /opt/lms-k8s/backend-deployment.yaml
+      timeout: 30
 
     - name: Expose backend service
       command: kubectl apply -f /opt/lms-k8s/backend-service.yaml
+      timeout: 30
 
     - name: Deploy frontend
       command: kubectl apply -f /opt/lms-k8s/frontend-deployment.yaml
+      timeout: 30
 
     - name: Expose frontend service
       command: kubectl apply -f /opt/lms-k8s/frontend-service.yaml
+      timeout: 30
 
     - name: Apply ingress
       command: kubectl apply -f /opt/lms-k8s/ingress.yaml
+      timeout: 30
 
     - name: Remove nginx ingress class annotation for k3s (Traefik default)
       command: kubectl -n lms annotate ingress lms-ingress kubernetes.io/ingress.class-
       ignore_errors: true
+      timeout: 30
 
     - name: Update backend image to Docker Hub username
       command: kubectl -n lms set image deployment/backend backend={{ dockerhub_username }}/cicdproject-backend:{{ image_tag }}
+      timeout: 30
 
     - name: Update frontend image to Docker Hub username
       command: kubectl -n lms set image deployment/frontend frontend={{ dockerhub_username }}/cicdproject-frontend:{{ image_tag }}
+      timeout: 30
 
-    - name: Wait for backend rollout
-      shell: kubectl -n lms get deploy backend -o jsonpath='{.status.availableReplicas}'
-      register: backend_ready
-      retries: 36
+    # CRITICAL FIX: Use shell with proper timeout and retry logic for long-running operations
+    - name: Wait for backend rollout with retry
+      shell: |
+        set -e
+        counter=0
+        max_attempts=3
+        while [ $counter -lt $max_attempts ]; do
+          if kubectl -n lms rollout status deployment/backend --timeout=120s 2>/dev/null; then
+            echo "Backend rollout successful"
+            exit 0
+          fi
+          counter=$((counter + 1))
+          if [ $counter -lt $max_attempts ]; then
+            echo "Attempt $counter failed, retrying in 10s..."
+            sleep 10
+          fi
+        done
+        echo "Backend rollout failed after $max_attempts attempts"
+        exit 1
+      timeout: 420
+      register: backend_rollout
+      until: backend_rollout.rc == 0
+      retries: 2
       delay: 5
-      until: (backend_ready.stdout | default('0') | int) >= 1
 
-    - name: Wait for frontend rollout
-      shell: kubectl -n lms get deploy frontend -o jsonpath='{.status.availableReplicas}'
-      register: frontend_ready
-      retries: 36
+    # CRITICAL FIX: Use shell with proper timeout and retry logic for long-running operations
+    - name: Wait for frontend rollout with retry
+      shell: |
+        set -e
+        counter=0
+        max_attempts=3
+        while [ $counter -lt $max_attempts ]; do
+          if kubectl -n lms rollout status deployment/frontend --timeout=120s 2>/dev/null; then
+            echo "Frontend rollout successful"
+            exit 0
+          fi
+          counter=$((counter + 1))
+          if [ $counter -lt $max_attempts ]; then
+            echo "Attempt $counter failed, retrying in 10s..."
+            sleep 10
+          fi
+        done
+        echo "Frontend rollout failed after $max_attempts attempts"
+        exit 1
+      timeout: 420
+      register: frontend_rollout
+      until: frontend_rollout.rc == 0
+      retries: 2
       delay: 5
-      until: (frontend_ready.stdout | default('0') | int) >= 1
+
+    - name: Verify deployment status
+      shell: kubectl -n lms get deployments -o wide
+      register: deployment_status
+
+    - name: Show deployment status
+      debug:
+        msg: "{{ deployment_status.stdout }}"
