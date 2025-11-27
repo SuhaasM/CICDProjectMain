@@ -28,6 +28,18 @@
       args:
         creates: /etc/rancher/k3s/k3s.yaml
 
+    - name: Create directory for Kubernetes manifests
+      file:
+        path: /opt/lms-k8s
+        state: directory
+        mode: '0755'
+
+    - name: Copy Kubernetes manifests to remote
+      copy:
+        src: k8s/
+        dest: /opt/lms-k8s/
+        mode: '0644'
+
     - name: Wait for Kubernetes API to be ready
       shell: kubectl get nodes --no-headers
       register: kubectl_nodes
@@ -36,31 +48,31 @@
       until: kubectl_nodes.rc == 0 and kubectl_nodes.stdout_lines | length > 0
 
     - name: Ensure Kubernetes namespace exists
-      command: kubectl apply -f k8s/namespace.yaml
+      command: kubectl apply -f /opt/lms-k8s/namespace.yaml
 
     - name: Apply database secret
-      command: kubectl apply -f k8s/secret.yaml
+      command: kubectl apply -f /opt/lms-k8s/secret.yaml
 
     - name: Deploy MySQL
-      command: kubectl apply -f k8s/mysql-deployment.yaml
+      command: kubectl apply -f /opt/lms-k8s/mysql-deployment.yaml
 
     - name: Expose MySQL service
-      command: kubectl apply -f k8s/mysql-service.yaml
+      command: kubectl apply -f /opt/lms-k8s/mysql-service.yaml
 
     - name: Deploy backend
-      command: kubectl apply -f k8s/backend-deployment.yaml
+      command: kubectl apply -f /opt/lms-k8s/backend-deployment.yaml
 
     - name: Expose backend service
-      command: kubectl apply -f k8s/backend-service.yaml
+      command: kubectl apply -f /opt/lms-k8s/backend-service.yaml
 
     - name: Deploy frontend
-      command: kubectl apply -f k8s/frontend-deployment.yaml
+      command: kubectl apply -f /opt/lms-k8s/frontend-deployment.yaml
 
     - name: Expose frontend service
-      command: kubectl apply -f k8s/frontend-service.yaml
+      command: kubectl apply -f /opt/lms-k8s/frontend-service.yaml
 
     - name: Apply ingress
-      command: kubectl apply -f k8s/ingress.yaml
+      command: kubectl apply -f /opt/lms-k8s/ingress.yaml
 
     - name: Remove nginx ingress class annotation for k3s (Traefik default)
       command: kubectl -n lms annotate ingress lms-ingress kubernetes.io/ingress.class-
