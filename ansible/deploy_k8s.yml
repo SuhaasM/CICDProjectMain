@@ -2,21 +2,25 @@
 - name: Deploy LMS stack to Kubernetes (remote k3s)
   hosts: all
   become: true
+  become_method: sudo
+  become_flags: "-n"
   gather_facts: false
   vars:
     dockerhub_username: "your_dockerhub_username"
     image_tag: "latest"
     kubeconfig_path: "/etc/rancher/k3s/k3s.yaml"
-  environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
+    kube_env:
+      KUBECONFIG: "{{ kubeconfig_path }}"
   tasks:
     - name: Ensure Python3 is installed
       raw: |
         (command -v python3 >/dev/null 2>&1) || (sudo dnf install -y python3 || sudo yum install -y python3 || (sudo apt-get update && sudo apt-get install -y python3))
+      become: false
 
     - name: Ensure curl is installed
       raw: |
         (command -v curl >/dev/null 2>&1) || (sudo dnf install -y curl || sudo yum install -y curl || (sudo apt-get update && sudo apt-get install -y curl))
+      become: false
 
     - name: Set Python interpreter
       set_fact:
@@ -41,52 +45,54 @@
         mode: '0644'
         remote_src: false
 
-    - name: Wait for Kubernetes API to be ready
-      shell: kubectl get nodes --no-headers
-      register: kubectl_nodes
-      retries: 20
-      delay: 6
-      until: kubectl_nodes.rc == 0 and kubectl_nodes.stdout_lines | length > 0
+    - block:
+        - name: Wait for Kubernetes API to be ready
+          shell: kubectl get nodes --no-headers
+          register: kubectl_nodes
+          retries: 20
+          delay: 6
+          until: kubectl_nodes.rc == 0 and kubectl_nodes.stdout_lines | length > 0
 
-    - name: Ensure Kubernetes namespace exists
-      command: kubectl apply -f /opt/lms-k8s/namespace.yaml
+        - name: Ensure Kubernetes namespace exists
+          command: kubectl apply -f /opt/lms-k8s/namespace.yaml
 
-    - name: Apply database secret
-      command: kubectl apply -f /opt/lms-k8s/secret.yaml
+        - name: Apply database secret
+          command: kubectl apply -f /opt/lms-k8s/secret.yaml
 
-    - name: Deploy MySQL
-      command: kubectl apply -f /opt/lms-k8s/mysql-deployment.yaml
+        - name: Deploy MySQL
+          command: kubectl apply -f /opt/lms-k8s/mysql-deployment.yaml
 
-    - name: Expose MySQL service
-      command: kubectl apply -f /opt/lms-k8s/mysql-service.yaml
+        - name: Expose MySQL service
+          command: kubectl apply -f /opt/lms-k8s/mysql-service.yaml
 
-    - name: Deploy backend
-      command: kubectl apply -f /opt/lms-k8s/backend-deployment.yaml
+        - name: Deploy backend
+          command: kubectl apply -f /opt/lms-k8s/backend-deployment.yaml
 
-    - name: Expose backend service
-      command: kubectl apply -f /opt/lms-k8s/backend-service.yaml
+        - name: Expose backend service
+          command: kubectl apply -f /opt/lms-k8s/backend-service.yaml
 
-    - name: Deploy frontend
-      command: kubectl apply -f /opt/lms-k8s/frontend-deployment.yaml
+        - name: Deploy frontend
+          command: kubectl apply -f /opt/lms-k8s/frontend-deployment.yaml
 
-    - name: Expose frontend service
-      command: kubectl apply -f /opt/lms-k8s/frontend-service.yaml
+        - name: Expose frontend service
+          command: kubectl apply -f /opt/lms-k8s/frontend-service.yaml
 
-    - name: Apply ingress
-      command: kubectl apply -f /opt/lms-k8s/ingress.yaml
+        - name: Apply ingress
+          command: kubectl apply -f /opt/lms-k8s/ingress.yaml
 
-    - name: Remove nginx ingress class annotation for k3s (Traefik default)
-      command: kubectl -n lms annotate ingress lms-ingress kubernetes.io/ingress.class-
-      ignore_errors: true
+        - name: Remove nginx ingress class annotation for k3s (Traefik default)
+          command: kubectl -n lms annotate ingress lms-ingress kubernetes.io/ingress.class-
+          ignore_errors: true
 
-    - name: Update backend image to Docker Hub username
-      command: kubectl -n lms set image deployment/backend backend={{ dockerhub_username }}/cicdproject-backend:{{ image_tag }}
+        - name: Update backend image to Docker Hub username
+          command: kubectl -n lms set image deployment/backend backend={{ dockerhub_username }}/cicdproject-backend:{{ image_tag }}
 
-    - name: Update frontend image to Docker Hub username
-      command: kubectl -n lms set image deployment/frontend frontend={{ dockerhub_username }}/cicdproject-frontend:{{ image_tag }}
+        - name: Update frontend image to Docker Hub username
+          command: kubectl -n lms set image deployment/frontend frontend={{ dockerhub_username }}/cicdproject-frontend:{{ image_tag }}
 
-    - name: Wait for backend rollout
-      command: kubectl -n lms rollout status deployment/backend --timeout=180s
+        - name: Wait for backend rollout
+          command: kubectl -n lms rollout status deployment/backend --timeout=180s
 
-    - name: Wait for frontend rollout
-      command: kubectl -n lms rollout status deployment/frontend --timeout=180s
+        - name: Wait for frontend rollout
+          command: kubectl -n lms rollout status deployment/frontend --timeout=180s
+      environment: "{{ kube_env }}"
